@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "algop_macros",
+    "algop_core",
+    "builder_extra",
+    "builder_extra_macro",
+    "testing",
+]
