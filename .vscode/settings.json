@@ -1,9 +1,11 @@
 {
     "cSpell.words": [
+        "Buildable",
         "algop",
         "binop",
         "bldr",
         "clippy",
+        "derefs",
         "glub",
         "idents",
         "impltn",

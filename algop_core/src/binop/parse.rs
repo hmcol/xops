@@ -1,4 +1,3 @@
-use derive_builder::*;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{
@@ -6,6 +5,8 @@ use syn::{
     parse::{Parse, ParseStream},
     parse_quote, token, Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type,
 };
+
+use derive_builder::*;
 
 // use builder_extra::builder_extra;
 
@@ -17,15 +18,15 @@ use syn::{
 //#[builder(pattern = "immutable")]
 pub struct ItemOutput {
     #[builder(default)]
-    type_token: Token![type],
+    pub type_token: Token![type],
     #[builder(default = "parse_quote!(Output)")]
-    ident: Ident,
+    pub ident: Ident,
     #[builder(default)]
-    eq_token: Token![=],
+    pub eq_token: Token![=],
     // #[builder(default = "parse_quote!(Self)")]
-    ty: Type,
+    pub ty: Type,
     #[builder(default)]
-    semi_token: Token![;],
+    pub semi_token: Token![;],
 }
 
 impl ItemOutput {
@@ -47,23 +48,23 @@ impl ItemOutput {
 #[builder(derive(Debug))]
 pub struct ItemFn {
     #[builder(default)]
-    attrs: Vec<Attribute>,
+    pub attrs: Vec<Attribute>,
     #[builder(default)]
-    fn_token: Token![fn],
-    ident: Ident,
+    pub fn_token: Token![fn],
+    pub ident: Ident,
     #[builder(default)]
-    paren_token: token::Paren,
+    pub paren_token: token::Paren,
     #[builder(default = "parse_quote!(self)")]
-    self_arg: Receiver,
+    pub lhs_arg: Receiver,
     #[builder(default)]
-    comma_token: Token![,],
+    pub comma_token: Token![,],
     #[builder(default = "parse_quote!(rhs)")]
-    rhs_arg: FnArg,
+    pub rhs_arg: FnArg,
     #[builder(default)]
-    arrow_token: Token![->],
+    pub arrow_token: Token![->],
     #[builder(default = "parse_quote!(Self::Output)")]
-    out_ty: Type,
-    block: Block,
+    pub out_ty: Type,
+    pub block: Block,
 }
 
 /// An impl block for a binary operation.
@@ -96,30 +97,38 @@ pub struct ItemFn {
 #[builder(derive(Debug))]
 pub struct TraitImpl {
     #[builder(default)]
-    attrs: Vec<Attribute>,
+    pub attrs: Vec<Attribute>,
     #[builder(default)]
-    impl_token: Token![impl],
+    pub impl_token: Token![impl],
     #[builder(default)]
-    generics: Generics,
-    trait_: Path, // likely not the most general, should be its own thing
+    pub generics: Generics,
+    pub trait_: Path, // likely not the most general, should be its own thing
     #[builder(default)]
-    lt_token: Option<Token![<]>,
+    pub lt_token: Token![<],
     #[builder(default = "parse_quote!(Self)")]
-    rhs_ty: Type,
+    pub rhs_ty: Type,
     #[builder(default)]
-    for_token: Token![for],
-    self_ty: Type,
+    pub for_token: Token![for],
+    pub lhs_ty: Type,
     #[builder(default)]
-    brace_token: token::Brace,
-    item_out: ItemOutput,
-    item_fn: ItemFn,
+    pub brace_token: token::Brace,
+    pub item_out: ItemOutput,
+    pub item_fn: ItemFn,
 }
 
 // builder helper stuff ----------------------------------------------------------------------------
 
+pub trait Buildable: Clone {
+    type BuilderStruct: From<Self>;
+    fn builder(&self) -> Self::BuilderStruct {
+        self.clone().into()
+    }
+}
+
+
 /// A helper trait for builders (derived from `derive_builder`) of structs
 /// implementing `Parse`.
-trait ParsedBuild {
+trait ParsedBuild: Clone {
     /// Original struct from which the builder was derived
     type BaseStruct: Parse;
 
@@ -130,10 +139,15 @@ trait ParsedBuild {
     /// the struct should be infallible. If this method returns an error, then
     /// it is most likely that some field was not initialized in the builder
     /// during parsing
+    /// 
+    /// If there were a proper trait for builder, then this could be given a
+    /// default implementation
     fn parsed_build(&self) -> syn::Result<Self::BaseStruct>;
 }
 
 /// Implements some helpful builder features 
+/// 
+/// at this point, prolly just gonna make my own darn builder deriver
 macro_rules! build_extra {
     (@impl_from $Base:ty, $Builder:ty: $( $field:ident ),* $(,)?) => {
         impl From<$Base> for $Builder {
@@ -149,6 +163,11 @@ macro_rules! build_extra {
             fn from(base: &$Base) -> Self {
                 base.clone().into()
             }
+        }
+    };
+    (@impl_buildable $Base:ty, $Builder:ty) => {
+        impl Buildable for $Base {
+            type BuilderStruct = $Builder;
         }
     };
     (@err_str $Base:ty) => {
@@ -170,9 +189,18 @@ macro_rules! build_extra {
             }
         }
     };
+    (@impl_build_ok $Base:ty, $Builder:ty) => {
+        impl $Builder {
+            pub fn build_option(&self) -> Option<$Base> {
+                Some(self.build().expect("if this fails ur dumb"))
+            }
+        }
+    };
     ($Base:ty, $Builder:ty : $( $field:ident ),* $(,)?) => {
         build_extra! { @impl_from $Base, $Builder: $($field),* }
+        build_extra! { @impl_buildable $Base, $Builder }
         build_extra! { @impl_parsed_build $Base, $Builder }
+        build_extra! {@impl_build_ok $Base, $Builder }
     };
 }
 
@@ -189,7 +217,7 @@ build_extra! { ItemFn, ItemFnBuilder:
     fn_token,
     ident,
     paren_token,
-    self_arg,
+    lhs_arg,
     comma_token,
     rhs_arg,
     arrow_token,
@@ -205,7 +233,7 @@ build_extra! { TraitImpl, TraitImplBuilder:
     lt_token,
     rhs_ty,
     for_token,
-    self_ty,
+    lhs_ty,
     brace_token,
     item_out,
     item_fn,
@@ -238,7 +266,7 @@ impl Parse for ItemFn {
         let content;
         bldr.paren_token(parenthesized!(content in input));
         // maybe unnecessary, but should guarantee proper evaluation order
-        bldr.self_arg(content.parse()?)
+        bldr.lhs_arg(content.parse()?)
             .comma_token(content.parse()?)
             .rhs_arg(content.parse()?)
             .arrow_token(input.parse()?)
@@ -269,10 +297,10 @@ impl Parse for TraitImpl {
         }
 
         bldr.for_token(input.parse()?)
-            .self_ty(input.parse()?);
+            .lhs_ty(input.parse()?);
 
         if bldr.rhs_ty.is_none() {
-            bldr.rhs_ty = bldr.self_ty.clone();
+            bldr.rhs_ty = bldr.lhs_ty.clone();
         }
 
         /* bldr.lt_token(if input.peek(Token![<]) {
@@ -302,7 +330,8 @@ impl Parse for TraitImpl {
 
         let content;
         bldr.brace_token(braced!(content in input));
-        // maybe unnecessary, but should guarantee proper evaluation order
+        // maybe unnecessary, but clippy whines if these are strung together.
+        // guarantees proper evaluation order, if that is indeed a concern.
         bldr.item_out(content.parse()?)
             .item_fn(content.parse()?);
 
@@ -328,14 +357,24 @@ impl ToTokens for ItemFn {
         self.fn_token.to_tokens(tokens);
         self.ident.to_tokens(tokens);
         self.paren_token.surround(tokens, |tokens| {
-            self.self_arg.to_tokens(tokens);
+            self.lhs_arg.to_tokens(tokens);
             self.comma_token.to_tokens(tokens);
             self.rhs_arg.to_tokens(tokens);
         });
         self.arrow_token.to_tokens(tokens);
-        tokens.append_all(quote!(Self::Output));
+        // tokens.append_all(quote!(Self::Output));
+        self.out_ty.to_tokens(tokens);
         self.block.to_tokens(tokens);
     }
+}
+
+macro_rules! lr_angled {
+    ($item:expr) => {
+        {
+            let rhs_ty = $item;
+            quote!(<#rhs_ty>)
+        }
+    };
 }
 
 impl ToTokens for TraitImpl {
@@ -344,10 +383,9 @@ impl ToTokens for TraitImpl {
         self.impl_token.to_tokens(tokens);
         self.generics.to_tokens(tokens);
         self.trait_.to_tokens(tokens);
-        let rhs_ty = &self.rhs_ty;
-        tokens.append_all(quote!(<#rhs_ty>));
+        tokens.append_all(lr_angled!(&self.rhs_ty));
         self.for_token.to_tokens(tokens);
-        self.self_ty.to_tokens(tokens);
+        self.lhs_ty.to_tokens(tokens);
         self.generics.where_clause.to_tokens(tokens);
         self.brace_token.surround(tokens, |tokens| {
             self.item_out.to_tokens(tokens);
