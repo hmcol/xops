@@ -3,6 +3,7 @@
         "algop",
         "binop",
         "bldr",
+        "clippy",
         "glub",
         "idents",
         "impltn",

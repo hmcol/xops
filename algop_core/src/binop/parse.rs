@@ -11,6 +11,7 @@ use syn::{
 
 // structs -----------------------------------------------------------------------------------------
 
+/// Type definition for the output of a binary operation: `type Output = C;`
 #[derive(Clone, Builder, Debug)]
 #[builder(derive(Debug))]
 //#[builder(pattern = "immutable")]
@@ -40,6 +41,8 @@ impl ItemOutput {
     }
 }
 
+/// Method implementation for a binary operation:
+/// `fn op(self, rhs: B) -> C { .. }`
 #[derive(Clone, Builder, Debug)]
 #[builder(derive(Debug))]
 pub struct ItemFn {
@@ -63,6 +66,32 @@ pub struct ItemFn {
     block: Block,
 }
 
+/// An impl block for a binary operation.
+///
+/// This represents a rather small subset of `syn::ItemImpl`, and is therefore
+/// very picky about what it will accept.
+///
+/// Example:
+/// ```
+/// impl BinOpTrait<B> for A {
+///     type Output = C;
+///     
+///     fn op(self, rhs: B) -> Self::Output { ... }
+/// }
+/// ```
+/// where `BinOpTrait` is any of the binary operations in `std::ops` (e.g.,
+/// `Add`, `Mul`, `Rem`, `Shl`, etc.).
+///
+/// It should work for any typical implementation of the `std::ops` binary
+/// operations (including e.g., generics, default `Rhs = Self`, mutable method
+/// arguments, etc.), and any custom binary operation, provided that its trait
+/// implementation is sufficiently similar.
+///
+/// In theory, generics can be freely used, or at least up to the same freedom
+/// as `syn::Generics` allows
+///
+/// A feature of `syn::ItemImpl` which is lacking here is support for optional
+/// default and visibility keywords; these may be added later.
 #[derive(Clone, Builder, Debug)]
 #[builder(derive(Debug))]
 pub struct TraitImpl {
@@ -72,7 +101,7 @@ pub struct TraitImpl {
     impl_token: Token![impl],
     #[builder(default)]
     generics: Generics,
-    trait_: Path,
+    trait_: Path, // likely not the most general, should be its own thing
     #[builder(default)]
     lt_token: Option<Token![<]>,
     #[builder(default = "parse_quote!(Self)")]
@@ -88,20 +117,37 @@ pub struct TraitImpl {
 
 // builder helper stuff ----------------------------------------------------------------------------
 
+/// A helper trait for builders (derived from `derive_builder`) of structs
+/// implementing `Parse`.
 trait ParsedBuild {
+    /// Original struct from which the builder was derived
     type BaseStruct: Parse;
+
+    /// Builds the struct (with the usual `build` method), converting the
+    /// result into a `syn::Result`.
+    /// 
+    /// This is intended to be used after parsing and, at which point, building
+    /// the struct should be infallible. If this method returns an error, then
+    /// it is most likely that some field was not initialized in the builder
+    /// during parsing
     fn parsed_build(&self) -> syn::Result<Self::BaseStruct>;
 }
 
+/// Implements some helpful builder features 
 macro_rules! build_extra {
-    (@impl_from $Base:ty, $Builder:ty: $( $f:ident ),* $(,)?) => {
+    (@impl_from $Base:ty, $Builder:ty: $( $field:ident ),* $(,)?) => {
         impl From<$Base> for $Builder {
             fn from(base: $Base) -> Self {
                 let mut bldr = <$Builder>::default();
-                bldr $(.$f(base.$f))*;
+                bldr $( .$field(base.$field) )* ;
 
                 // return
                 bldr
+            }
+        }
+        impl From<&$Base> for $Builder {
+            fn from(base: &$Base) -> Self {
+                base.clone().into()
             }
         }
     };
@@ -124,8 +170,8 @@ macro_rules! build_extra {
             }
         }
     };
-    ($Base:ty, $Builder:ty : $( $f:ident ),* $(,)?) => {
-        build_extra! { @impl_from $Base, $Builder: $($f),* }
+    ($Base:ty, $Builder:ty : $( $field:ident ),* $(,)?) => {
+        build_extra! { @impl_from $Base, $Builder: $($field),* }
         build_extra! { @impl_parsed_build $Base, $Builder }
     };
 }
@@ -222,7 +268,8 @@ impl Parse for TraitImpl {
             let _: Token![>] = input.parse()?;
         }
 
-        bldr.for_token(input.parse()?).self_ty(input.parse()?);
+        bldr.for_token(input.parse()?)
+            .self_ty(input.parse()?);
 
         if bldr.rhs_ty.is_none() {
             bldr.rhs_ty = bldr.self_ty.clone();
@@ -256,7 +303,8 @@ impl Parse for TraitImpl {
         let content;
         bldr.brace_token(braced!(content in input));
         // maybe unnecessary, but should guarantee proper evaluation order
-        bldr.item_out(content.parse()?).item_fn(content.parse()?);
+        bldr.item_out(content.parse()?)
+            .item_fn(content.parse()?);
 
         bldr.parsed_build()
     }
