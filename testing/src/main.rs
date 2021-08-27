@@ -1,4 +1,4 @@
-use algop_macros::*;
+use xops_macros::*;
 use std::ops::*;
 use std::fmt;
 
@@ -32,9 +32,9 @@ impl Default for Fish<String> {
     }
 }
 
-#[binop_with_commute]
+/* #[binop_with_commute]
 #[binop_with_derefs]
-impl<T> Mul<&Dog> for &Fish<T>
+impl<T> std::ops::Mul<&Dog> for &Fish<T>
 where
     T: Clone + fmt::Debug + std::iter::FromIterator<T>,
 {
@@ -49,9 +49,9 @@ where
                     .collect()
         }
     }
-}
+} */
 
-/* #[binop_with_commute]
+#[binop_with_commute]
 #[binop_with_refs]
 impl Mul<Fish<String>> for Dog {
     type Output = Dog;
@@ -60,7 +60,7 @@ impl Mul<Fish<String>> for Dog {
         Dog(self.0 * rhs.num * (rhs.data.len() as i32))
     }
 }
- */
+
 
 
 fn main() {

@@ -1,7 +1,7 @@
 use syn::parse_quote;
 
-use crate::utils::TypeConversion;
 use super::{Buildable, ItemFn, TraitImpl};
+use crate::utils::TypeConversion;
 
 impl TraitImpl {
     pub fn try_deref_lhs(&self) -> Option<Self> {
@@ -129,6 +129,4 @@ impl TraitImpl {
     }
 }
 
-impl ItemFn {
-
-}
+impl ItemFn {}

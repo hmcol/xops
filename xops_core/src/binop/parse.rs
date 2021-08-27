@@ -8,7 +8,6 @@ use syn::{
 
 use derive_builder::*;
 
-// use builder_extra::builder_extra;
 
 // structs -----------------------------------------------------------------------------------------
 
@@ -125,7 +124,6 @@ pub trait Buildable: Clone {
     }
 }
 
-
 /// A helper trait for builders (derived from `derive_builder`) of structs
 /// implementing `Parse`.
 trait ParsedBuild: Clone {
@@ -134,19 +132,19 @@ trait ParsedBuild: Clone {
 
     /// Builds the struct (with the usual `build` method), converting the
     /// result into a `syn::Result`.
-    /// 
+    ///
     /// This is intended to be used after parsing and, at which point, building
     /// the struct should be infallible. If this method returns an error, then
     /// it is most likely that some field was not initialized in the builder
     /// during parsing
-    /// 
+    ///
     /// If there were a proper trait for builder, then this could be given a
     /// default implementation
     fn parsed_build(&self) -> syn::Result<Self::BaseStruct>;
 }
 
-/// Implements some helpful builder features 
-/// 
+/// Implements some helpful builder features
+///
 /// at this point, prolly just gonna make my own darn builder deriver
 macro_rules! build_extra {
     (@impl_from $Base:ty, $Builder:ty: $( $field:ident ),* $(,)?) => {
@@ -277,6 +275,10 @@ impl Parse for ItemFn {
     }
 }
 
+
+
+
+
 impl Parse for TraitImpl {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut bldr = TraitImplBuilder::default();
@@ -296,8 +298,7 @@ impl Parse for TraitImpl {
             let _: Token![>] = input.parse()?;
         }
 
-        bldr.for_token(input.parse()?)
-            .lhs_ty(input.parse()?);
+        bldr.for_token(input.parse()?).lhs_ty(input.parse()?);
 
         if bldr.rhs_ty.is_none() {
             bldr.rhs_ty = bldr.lhs_ty.clone();
@@ -332,8 +333,7 @@ impl Parse for TraitImpl {
         bldr.brace_token(braced!(content in input));
         // maybe unnecessary, but clippy whines if these are strung together.
         // guarantees proper evaluation order, if that is indeed a concern.
-        bldr.item_out(content.parse()?)
-            .item_fn(content.parse()?);
+        bldr.item_out(content.parse()?).item_fn(content.parse()?);
 
         bldr.parsed_build()
     }

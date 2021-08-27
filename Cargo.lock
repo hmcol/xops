@@ -3,48 +3,6 @@
 version = 3
 
 [[package]]
-name = "algop_core"
-version = "0.1.0"
-dependencies = [
- "builder_extra",
- "derive_builder",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "algop_macros"
-version = "0.1.0"
-dependencies = [
- "algop_core",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "builder_extra"
-version = "0.1.0"
-dependencies = [
- "derive_builder",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "builder_extra_macro"
-version = "0.1.0"
-dependencies = [
- "builder_extra",
- "derive_builder",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "darling"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -161,7 +119,7 @@ dependencies = [
 name = "testing"
 version = "0.1.0"
 dependencies = [
- "algop_macros",
+ "xops_macros",
 ]
 
 [[package]]
@@ -169,3 +127,23 @@ name = "unicode-xid"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
+
+[[package]]
+name = "xops_core"
+version = "0.1.0"
+dependencies = [
+ "derive_builder",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "xops_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "xops_core",
+]

@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
 /// this workspace
-use algop_core::binop;
+use xops_core::binop;
 
 // this crate
 mod utils;
