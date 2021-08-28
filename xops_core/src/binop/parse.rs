@@ -1,15 +1,43 @@
+use std::convert::TryFrom;
+
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::{
-    braced, parenthesized,
+    braced,
+    ext::IdentExt,
+    parenthesized,
     parse::{Parse, ParseStream},
     parse_quote, token, Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type,
 };
 
 use derive_builder::*;
 
-
 // structs -----------------------------------------------------------------------------------------
+
+#[derive(Clone, Debug)]
+pub enum MetaArg {
+    Commute,
+    RefsClone,
+    Derefs,
+}
+
+impl TryFrom<&str> for MetaArg {
+    type Error = &'static str;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "commute" => Ok(MetaArg::Commute),
+            "refs_clone" => Ok(MetaArg::RefsClone),
+            "derefs" => Ok(MetaArg::Derefs),
+            _ => Err("unrecognized binop argument; expected `commute`, `refs_clone`, or `derefs`"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ImplArgs {
+    pub args: Vec<MetaArg>,
+}
 
 /// Type definition for the output of a binary operation: `type Output = C;`
 #[derive(Clone, Builder, Debug)]
@@ -239,6 +267,47 @@ build_extra! { TraitImpl, TraitImplBuilder:
 
 // impl Parse --------------------------------------------------------------------------------------
 
+impl Parse for MetaArg {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let ident: Ident = input.parse()?;
+
+        MetaArg::try_from(ident.to_string().as_str())
+            .map_err(|msg| syn::Error::new(ident.span(), msg))
+    }
+}
+
+impl MetaArg {
+    pub fn parse_list(input: ParseStream) -> syn::Result<Vec<Self>> {
+        let mut args = Vec::new();
+
+        while input.peek(Ident::peek_any) {
+            args.push(input.parse()?);
+            if input.peek(Token![,]) {
+                let _: Token![,] = input.parse()?;
+            }
+        }
+
+        Ok(args)
+    }
+}
+
+impl Parse for ImplArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut args = Vec::new();
+
+        while input.peek(Ident::peek_any) {
+            args.push(input.parse()?);
+            if input.peek(Token![,]) {
+                let _: Token![,] = input.parse()?;
+            }
+        }
+
+        // args.push(input.parse()?);
+
+        Ok(ImplArgs { args })
+    }
+}
+
 impl Parse for ItemOutput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut bldr = ItemOutputBuilder::default();
@@ -274,10 +343,6 @@ impl Parse for ItemFn {
         bldr.parsed_build()
     }
 }
-
-
-
-
 
 impl Parse for TraitImpl {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -340,6 +405,27 @@ impl Parse for TraitImpl {
 }
 
 // impl ToTokens -----------------------------------------------------------------------------------
+
+impl ToTokens for MetaArg {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        tokens.append_all(match self {
+            MetaArg::Commute => quote!(commute),
+            MetaArg::RefsClone => quote!(refs_clone),
+            MetaArg::Derefs => quote!(derefs),
+        })
+    }
+}
+
+
+
+impl ToTokens for ImplArgs {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let args = &self.args;
+        tokens.append_all(quote! {
+            binop( #(#args,)* )
+        })
+    }
+}
 
 impl ToTokens for ItemOutput {
     fn to_tokens(&self, tokens: &mut TokenStream) {

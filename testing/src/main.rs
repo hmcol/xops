@@ -51,8 +51,17 @@ where
     }
 } */
 
-#[binop_with_commute]
+/* #[binop_with_commute]
 #[binop_with_refs]
+impl Mul<Fish<String>> for Dog {
+    type Output = Dog;
+
+    fn mul(self, rhs: Fish<String>) -> Dog {
+        Dog(self.0 * rhs.num * (rhs.data.len() as i32))
+    }
+} */
+
+#[binop(commute, refs_clone)]
 impl Mul<Fish<String>> for Dog {
     type Output = Dog;
 

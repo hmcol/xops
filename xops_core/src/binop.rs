@@ -5,9 +5,31 @@ mod parse;
 pub use parse::*;
 
 mod write;
+use syn::parse_quote;
 pub use write::*;
 
 use crate::utils::print_tokens;
+
+pub fn apply(args: &[MetaArg], impltn: TraitImpl) -> TokenStream {
+    if !args.is_empty() {
+        let arg1 = &args[0];
+        let other_args = &args[1..];
+
+        let impltn_with_args = parse_quote! {
+            #[binop( #(#other_args),* )]
+            #impltn
+        };
+
+        match arg1 {
+            MetaArg::Commute => with_commute(impltn_with_args),
+            MetaArg::RefsClone =>with_refs(impltn_with_args),
+            MetaArg::Derefs => with_derefs(impltn_with_args),
+        }
+    } else {
+        quote!(#impltn)
+    }
+}
+
 
 pub fn read_impl(impltn: TraitImpl) -> TokenStream {
     let expanded = quote! {
@@ -46,7 +68,7 @@ pub fn with_refs(impltn: TraitImpl) -> TokenStream {
 
     let expanded = quote! {
         #impltn
-        
+
         #ref_own
         #own_ref
         #ref_ref
@@ -63,7 +85,7 @@ pub fn with_commute(impltn: TraitImpl) -> TokenStream {
 
     let expanded = quote! {
         #impltn
-        
+
         #commute
     };
 
