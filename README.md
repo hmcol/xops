@@ -1,2 +1,2 @@
-# algop
-procedural macros for overloading operators
+# xops
+rust procedural macros for overloading operators
