@@ -61,6 +61,7 @@ impl Mul<Fish<String>> for Dog {
     }
 } */
 
+
 #[binop(commute, refs_clone)]
 impl Mul<Fish<String>> for Dog {
     type Output = Dog;
@@ -71,8 +72,8 @@ impl Mul<Fish<String>> for Dog {
 }
 
 
-
-fn main() {
+#[test]
+fn derived_ops_test() {
     let fish = |num: i32| Fish { num, data: "glub".to_string() };
 
     dbg!(&fish(7) * &Dog(3));
@@ -88,5 +89,3 @@ fn main() {
     dbg!( Dog(3) *  fish(7));
     
 }
-
-

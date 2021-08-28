@@ -12,5 +12,8 @@
         "paren",
         "structs",
         "xops"
-    ]
+    ],
+    "files.exclude": {
+        "target": true,
+    },
 }
