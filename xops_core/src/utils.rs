@@ -1,9 +1,12 @@
-use quote::{quote, ToTokens};
+use quote::{quote};
+#[cfg(test)]
+use quote::ToTokens;
 use syn::{Type, parse_quote};
 
 /// quotes and prints `item` under the label `header`
 ///
 /// primarily used for checking implementations of Parse and/or ToTokens
+#[cfg(test)]
 pub fn print_tokens<T: ToTokens>(header: &str, item: T) {
     println!("BEGIN {} \n{}\nEND\n", header, quote!(#item));
 }

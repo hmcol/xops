@@ -7,23 +7,8 @@
 			"problemMatcher": [
 				"$rustc"
 			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"label": "rust: cargo test",
-			"presentation": {
-				"clear": true
-			}
-		},
-		{
-			"type": "cargo",
-			"command": "run",
-			"problemMatcher": [
-				"$rustc"
-			],
-			"label": "rust: cargo run",
 			"group": "build",
+			"label": "rust: cargo test",
 			"presentation": {
 				"clear": true
 			}
@@ -35,7 +20,20 @@
 				"$rustc"
 			],
 			"group": "build",
-			"label": "rust: cargo build",
+			"label": "rust: cargo build (dev)",
+			"presentation": {
+				"clear": true
+			}
+		},
+		{
+			"type": "cargo",
+			"command": "build",
+			"args": ["--release"],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "rust: cargo build (release)",
 			"presentation": {
 				"clear": true
 			}

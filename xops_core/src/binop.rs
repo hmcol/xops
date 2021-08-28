@@ -8,6 +8,7 @@ mod write;
 use syn::parse_quote;
 pub use write::*;
 
+#[cfg(test)]
 use crate::utils::print_tokens;
 
 pub fn apply(args: &[MetaArg], impltn: TraitImpl) -> TokenStream {
@@ -36,6 +37,7 @@ pub fn read_impl(impltn: TraitImpl) -> TokenStream {
         #impltn
     };
 
+    #[cfg(test)]
     print_tokens("binop::read_impl expanded", &expanded);
 
     // return
@@ -55,6 +57,7 @@ pub fn with_derefs(impltn: TraitImpl) -> TokenStream {
         #deref_deref
     };
 
+    #[cfg(test)]
     print_tokens("binop::with_derefs expanded", &expanded);
 
     // return
@@ -74,6 +77,7 @@ pub fn with_refs(impltn: TraitImpl) -> TokenStream {
         #ref_ref
     };
 
+    #[cfg(test)]
     print_tokens("binop::with_refs expanded", &expanded);
 
     // return
@@ -89,6 +93,7 @@ pub fn with_commute(impltn: TraitImpl) -> TokenStream {
         #commute
     };
 
+    #[cfg(test)]
     print_tokens("binop::with_commute expanded", &expanded);
 
     // return
