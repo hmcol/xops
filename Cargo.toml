@@ -1,7 +1,14 @@
-[workspace]
+[package]
+name = "xops"
+version = "0.1.0"
+edition = "2018"
 
+[workspace]
 members = [
     "xops_macros",
     "xops_core",
-    "testing",
 ]
+
+[dependencies]
+# xops_core = { path = "xops_core" }
+xops_macros = { path = "xops_macros" }
