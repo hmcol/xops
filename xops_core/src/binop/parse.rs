@@ -44,15 +44,10 @@ pub struct ImplArgs {
 #[builder(derive(Debug))]
 //#[builder(pattern = "immutable")]
 pub struct ItemOutput {
-    #[builder(default)]
     pub type_token: Token![type],
-    #[builder(default = "parse_quote!(Output)")]
     pub ident: Ident,
-    #[builder(default)]
     pub eq_token: Token![=],
-    // #[builder(default = "parse_quote!(Self)")]
     pub ty: Type,
-    #[builder(default)]
     pub semi_token: Token![;],
 }
 
@@ -74,22 +69,14 @@ impl ItemOutput {
 #[derive(Clone, Builder, Debug)]
 #[builder(derive(Debug))]
 pub struct ItemFn {
-    #[builder(default)]
     pub attrs: Vec<Attribute>,
-    #[builder(default)]
     pub fn_token: Token![fn],
     pub ident: Ident,
-    #[builder(default)]
     pub paren_token: token::Paren,
-    #[builder(default = "parse_quote!(self)")]
     pub lhs_arg: Receiver,
-    #[builder(default)]
     pub comma_token: Token![,],
-    #[builder(default = "parse_quote!(rhs)")]
     pub rhs_arg: FnArg,
-    #[builder(default)]
     pub arrow_token: Token![->],
-    #[builder(default = "parse_quote!(Self::Output)")]
     pub out_ty: Type,
     pub block: Block,
 }
@@ -123,21 +110,15 @@ pub struct ItemFn {
 #[derive(Clone, Builder, Debug)]
 #[builder(derive(Debug))]
 pub struct TraitImpl {
-    #[builder(default)]
     pub attrs: Vec<Attribute>,
-    #[builder(default)]
     pub impl_token: Token![impl],
-    #[builder(default)]
     pub generics: Generics,
     pub trait_: Path, // likely not the most general, should be its own thing
     #[builder(default)]
     pub lt_token: Token![<],
-    #[builder(default = "parse_quote!(Self)")]
     pub rhs_ty: Type,
-    #[builder(default)]
     pub for_token: Token![for],
     pub lhs_ty: Type,
-    #[builder(default)]
     pub brace_token: token::Brace,
     pub item_out: ItemOutput,
     pub item_fn: ItemFn,

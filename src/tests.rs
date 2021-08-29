@@ -32,8 +32,7 @@ impl Default for Fish<String> {
     }
 }
 
-/* #[binop_with_commute]
-#[binop_with_derefs]
+/* #[binop(commute, derefs)]
 impl<T> std::ops::Mul<&Dog> for &Fish<T>
 where
     T: Clone + fmt::Debug + std::iter::FromIterator<T>,
@@ -87,5 +86,8 @@ fn derived_ops_test() {
     dbg!( Dog(3) * &fish(7));
     dbg!(&Dog(3) *  fish(7));
     dbg!( Dog(3) *  fish(7));
-    
+
+    let x = std::any::type_name::<Fish<String>>();
+    dbg!(x);
+
 }

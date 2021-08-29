@@ -15,6 +15,7 @@ pub trait TypeConversion: Sized {
     fn as_ref(&self) -> Self;
     fn as_verbatim(&self) -> Self;
     fn as_deref(&self) -> Option<Self>;
+    fn try_deref(&self) -> Result<Self, String>;
 }
 
 impl TypeConversion for Type {
@@ -31,7 +32,18 @@ impl TypeConversion for Type {
         }
     }
 
+    fn try_deref(&self) -> Result<Self, String> {
+        if let Type::Reference(ref_ty) = self {
+            let ty = &ref_ty.elem;
+            Ok(parse_quote!(#ty))
+        } else {
+            Err(format!("could not dereference type `{}`", quote!(self)))
+        }
+    }
+
     fn as_verbatim(&self) -> Self {
         Type::Verbatim(quote!(#self))
     }
 }
+
+

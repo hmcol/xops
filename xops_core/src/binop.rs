@@ -23,7 +23,7 @@ pub fn apply(args: &[MetaArg], impltn: TraitImpl) -> TokenStream {
 
         match arg1 {
             MetaArg::Commute => with_commute(impltn_with_args),
-            MetaArg::RefsClone =>with_refs(impltn_with_args),
+            MetaArg::RefsClone =>with_refs_clone(impltn_with_args),
             MetaArg::Derefs => with_derefs(impltn_with_args),
         }
     } else {
@@ -44,27 +44,23 @@ pub fn read_impl(impltn: TraitImpl) -> TokenStream {
     expanded
 }
 
-pub fn with_derefs(impltn: TraitImpl) -> TokenStream {
-    let deref_ref = impltn.try_deref_lhs();
-    let ref_deref = impltn.try_deref_rhs();
-    let deref_deref = impltn.try_deref_both();
+pub fn with_commute(impltn: TraitImpl) -> TokenStream {
+    let commute = impltn.commute();
 
     let expanded = quote! {
         #impltn
-        
-        #deref_ref
-        #ref_deref
-        #deref_deref
+
+        #commute
     };
 
     #[cfg(test)]
-    print_tokens("binop::with_derefs expanded", &expanded);
+    print_tokens("binop::with_commute expanded", &expanded);
 
     // return
     expanded
 }
 
-pub fn with_refs(impltn: TraitImpl) -> TokenStream {
+pub fn with_refs_clone(impltn: TraitImpl) -> TokenStream {
     let ref_own = impltn.ref_lhs_clone();
     let own_ref = impltn.ref_rhs_clone();
     let ref_ref = impltn.ref_both_clone();
@@ -84,17 +80,21 @@ pub fn with_refs(impltn: TraitImpl) -> TokenStream {
     expanded
 }
 
-pub fn with_commute(impltn: TraitImpl) -> TokenStream {
-    let commute = impltn.commute();
+pub fn with_derefs(impltn: TraitImpl) -> TokenStream {
+    let deref_ref = impltn.try_deref_lhs();
+    let ref_deref = impltn.try_deref_rhs();
+    let deref_deref = impltn.try_deref_both();
 
     let expanded = quote! {
         #impltn
-
-        #commute
+        
+        #deref_ref
+        #ref_deref
+        #deref_deref
     };
 
     #[cfg(test)]
-    print_tokens("binop::with_commute expanded", &expanded);
+    print_tokens("binop::with_derefs expanded", &expanded);
 
     // return
     expanded

@@ -10,5 +10,4 @@ members = [
 ]
 
 [dependencies]
-# xops_core = { path = "xops_core" }
 xops_macros = { path = "xops_macros" }

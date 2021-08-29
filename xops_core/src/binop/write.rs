@@ -1,132 +1,131 @@
 use syn::parse_quote;
 
-use super::{Buildable, ItemFn, TraitImpl};
+use super::TraitImpl;
 use crate::utils::TypeConversion;
 
 impl TraitImpl {
     pub fn try_deref_lhs(&self) -> Option<Self> {
-        let deref_lhs_ty = self.lhs_ty.as_deref()?;
-
-        let fn_ident = &self.item_fn.ident;
+        let lhs_ty = self.lhs_ty.as_deref()?;
         let rhs_ty = &self.rhs_ty;
-        let new_item_fn = parse_quote! {
+        let fn_ident = &self.item_fn.ident;
+        let item_fn = parse_quote! {
             fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 (&self).#fn_ident(rhs)
             }
         };
 
-        self.builder()
-            .lhs_ty(deref_lhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
+        Some(TraitImpl {
+            lhs_ty,
+            item_fn,
+            ..self.clone()
+        })
     }
 
     pub fn try_deref_rhs(&self) -> Option<Self> {
-        let deref_rhs_ty = self.rhs_ty.as_deref()?;
-
+        let rhs_ty = self.rhs_ty.as_deref()?;
         let fn_ident = &self.item_fn.ident;
-        let new_item_fn = parse_quote! {
-            fn #fn_ident(self, rhs: #deref_rhs_ty) -> Self::Output {
+        let item_fn = parse_quote! {
+            fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 self.#fn_ident(&rhs)
             }
         };
 
-        self.builder()
-            .rhs_ty(deref_rhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
+        Some(TraitImpl {
+            rhs_ty,
+            item_fn,
+            ..self.clone()
+        })
     }
 
     pub fn try_deref_both(&self) -> Option<Self> {
-        let deref_lhs_ty = self.lhs_ty.as_deref()?;
-        let deref_rhs_ty = self.rhs_ty.as_deref()?;
-
+        let lhs_ty = self.lhs_ty.as_deref()?;
+        let rhs_ty = self.rhs_ty.as_deref()?;
         let fn_ident = &self.item_fn.ident;
-        let new_item_fn = parse_quote! {
-            fn #fn_ident(self, rhs: #deref_rhs_ty) -> Self::Output {
+        let item_fn = parse_quote! {
+            fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 (&self).#fn_ident(&rhs)
             }
         };
 
-        self.builder()
-            .lhs_ty(deref_lhs_ty)
-            .rhs_ty(deref_rhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
+        Some(TraitImpl {
+            lhs_ty,
+            rhs_ty,
+            item_fn,
+            ..self.clone()
+        })
     }
 
     pub fn ref_lhs_clone(&self) -> Self {
-        let ref_lhs_ty = self.lhs_ty.as_ref();
-
         let fn_ident = &self.item_fn.ident;
+        let lhs_ty = self.lhs_ty.as_ref();
         let rhs_ty = &self.rhs_ty;
-        let new_item_fn = parse_quote! {
+
+        let item_fn = parse_quote! {
             fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 self.clone().#fn_ident(rhs)
             }
         };
 
-        self.builder()
-            .lhs_ty(ref_lhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
-            .unwrap()
+        TraitImpl {
+            lhs_ty,
+            item_fn,
+            ..self.clone()
+        }
     }
 
     pub fn ref_rhs_clone(&self) -> Self {
-        let ref_rhs_ty = self.rhs_ty.as_ref();
-
         let fn_ident = &self.item_fn.ident;
-        let new_item_fn = parse_quote! {
-            fn #fn_ident(self, rhs: #ref_rhs_ty) -> Self::Output {
+        // let lhs_ty = &self.lhs_ty;
+        let rhs_ty = self.rhs_ty.as_ref();
+
+        let item_fn = parse_quote! {
+            fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 self.#fn_ident(rhs.clone())
             }
         };
 
-        self.builder()
-            .rhs_ty(ref_rhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
-            .unwrap()
+        TraitImpl {
+            rhs_ty,
+            item_fn,
+            ..self.clone()
+        }
     }
 
     pub fn ref_both_clone(&self) -> Self {
-        let ref_lhs_ty = self.lhs_ty.as_ref();
-        let ref_rhs_ty = self.rhs_ty.as_ref();
-
         let fn_ident = &self.item_fn.ident;
-        let new_item_fn = parse_quote! {
-            fn #fn_ident(self, rhs: #ref_rhs_ty) -> Self::Output {
+        let lhs_ty = self.lhs_ty.as_ref();
+        let rhs_ty = self.rhs_ty.as_ref();
+
+        let item_fn = parse_quote! {
+            fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 self.clone().#fn_ident(rhs.clone())
             }
         };
 
-        self.builder()
-            .lhs_ty(ref_lhs_ty)
-            .rhs_ty(ref_rhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
-            .unwrap()
+        TraitImpl {
+            lhs_ty,
+            rhs_ty,
+            item_fn,
+            ..self.clone()
+        }
     }
 
     pub fn commute(&self) -> Self {
-        let lhs_ty = self.lhs_ty.clone();
-        let rhs_ty = self.rhs_ty.clone();
+        let lhs_ty = self.rhs_ty.clone();
+        let rhs_ty = self.lhs_ty.clone();
 
         let fn_ident = &self.item_fn.ident;
-        let new_item_fn = parse_quote! {
-            fn #fn_ident(self, rhs: #lhs_ty) -> Self::Output {
+        let item_fn = parse_quote! {
+            fn #fn_ident(self, rhs: #rhs_ty) -> Self::Output {
                 rhs.#fn_ident(self)
             }
         };
 
-        self.builder()
-            .lhs_ty(rhs_ty)
-            .rhs_ty(lhs_ty)
-            .item_fn(new_item_fn)
-            .build_option()
-            .unwrap()
+        TraitImpl {
+            lhs_ty,
+            rhs_ty,
+            item_fn,
+            ..self.clone()
+        }
     }
 }
-
-impl ItemFn {}
