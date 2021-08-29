@@ -1,40 +1,17 @@
-use std::convert::TryFrom;
-
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens, TokenStreamExt};
-use syn::{
-    braced,
-    ext::IdentExt,
-    parenthesized,
-    parse::{Parse, ParseStream},
-    parse_quote, token, Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type,
-};
+use syn::{Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type, braced, parenthesized, parse::{Parse, ParseStream}, parse_quote, token};
+use darling::FromMeta;
 
 // structs -----------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug)]
-pub enum MetaArg {
-    Commute,
-    RefsClone,
-    Derefs,
-}
-
-impl TryFrom<&str> for MetaArg {
-    type Error = &'static str;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            "commute" => Ok(MetaArg::Commute),
-            "refs_clone" => Ok(MetaArg::RefsClone),
-            "derefs" => Ok(MetaArg::Derefs),
-            _ => Err("unrecognized binop argument; expected `commute`, `refs_clone`, or `derefs`"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ImplArgs {
-    pub args: Vec<MetaArg>,
+#[derive(Clone, Copy, Default, FromMeta, Debug)]
+#[darling(default)]
+pub struct BinOpArgs {
+    pub dev_print: bool,
+    pub commute: bool,
+    pub refs_clone: bool,
+    pub derefs: bool,
 }
 
 /// Type definition for the output of a binary operation: `type Output = C;`
@@ -122,59 +99,7 @@ pub struct TraitImpl {
 
 // impl Parse --------------------------------------------------------------------------------------
 
-impl Parse for MetaArg {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let ident: Ident = input.parse()?;
-
-        MetaArg::try_from(ident.to_string().as_str())
-            .map_err(|msg| syn::Error::new(ident.span(), msg))
-    }
-}
-
-impl MetaArg {
-    pub fn parse_list(input: ParseStream) -> syn::Result<Vec<Self>> {
-        let mut args = Vec::new();
-
-        while input.peek(Ident::peek_any) {
-            args.push(input.parse()?);
-            if input.peek(Token![,]) {
-                let _: Token![,] = input.parse()?;
-            }
-        }
-
-        Ok(args)
-    }
-}
-
-impl Parse for ImplArgs {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut args = Vec::new();
-
-        while input.peek(Ident::peek_any) {
-            args.push(input.parse()?);
-            if input.peek(Token![,]) {
-                let _: Token![,] = input.parse()?;
-            }
-        }
-
-        // args.push(input.parse()?);
-
-        Ok(ImplArgs { args })
-    }
-}
-
 impl Parse for ItemOutput {
-    /* fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut bldr = ItemOutputBuilder::default();
-
-        bldr.type_token(input.parse()?)
-            .ident(input.parse()?)
-            .eq_token(input.parse()?)
-            .ty(input.parse()?)
-            .semi_token(input.parse()?);
-
-        bldr.parsed_build()
-    } */
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(ItemOutput {
             type_token: input.parse()?,
@@ -187,25 +112,6 @@ impl Parse for ItemOutput {
 }
 
 impl Parse for ItemFn {
-    /* fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut bldr = ItemFnBuilder::default();
-
-        bldr.attrs(input.call(Attribute::parse_outer)?)
-            .fn_token(input.parse()?)
-            .ident(input.parse()?);
-
-        let content;
-        bldr.paren_token(parenthesized!(content in input));
-        // maybe unnecessary, but should guarantee proper evaluation order
-        bldr.lhs_arg(content.parse()?)
-            .comma_token(content.parse()?)
-            .rhs_arg(content.parse()?)
-            .arrow_token(input.parse()?)
-            .out_ty(input.parse()?)
-            .block(input.parse()?);
-
-        bldr.parsed_build()
-    } */
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         Ok(ItemFn {
@@ -224,41 +130,6 @@ impl Parse for ItemFn {
 }
 
 impl Parse for TraitImpl {
-    /* fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut bldr = TraitImplBuilder::default();
-
-        bldr.attrs(input.call(Attribute::parse_outer)?)
-            .impl_token(input.parse()?);
-
-        let mut generics: Generics = input.parse()?;
-
-        bldr.trait_(input.call(Path::parse_mod_style)?);
-
-        if input.peek(Token![<]) {
-            bldr.lt_token(input.parse()?);
-            if !input.peek(Token![>]) {
-                bldr.rhs_ty(input.parse()?);
-            }
-            let _: Token![>] = input.parse()?;
-        }
-
-        bldr.for_token(input.parse()?).lhs_ty(input.parse()?);
-
-        if bldr.rhs_ty.is_none() {
-            bldr.rhs_ty = bldr.lhs_ty.clone();
-        }
-
-        generics.where_clause = input.parse()?;
-        bldr.generics(generics);
-
-        let content;
-        bldr.brace_token(braced!(content in input));
-        // maybe unnecessary, but clippy whines if these are strung together.
-        // guarantees proper evaluation order, if that is indeed a concern.
-        bldr.item_out(content.parse()?).item_fn(content.parse()?);
-
-        bldr.parsed_build()
-    } */
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let impl_token = input.parse()?;
@@ -315,27 +186,6 @@ impl Parse for TraitImpl {
 }
 
 // impl ToTokens -----------------------------------------------------------------------------------
-
-impl ToTokens for MetaArg {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.append_all(match self {
-            MetaArg::Commute => quote!(commute),
-            MetaArg::RefsClone => quote!(refs_clone),
-            MetaArg::Derefs => quote!(derefs),
-        })
-    }
-}
-
-
-
-impl ToTokens for ImplArgs {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let args = &self.args;
-        tokens.append_all(quote! {
-            binop( #(#args,)* )
-        })
-    }
-}
 
 impl ToTokens for ItemOutput {
     fn to_tokens(&self, tokens: &mut TokenStream) {

@@ -53,7 +53,8 @@ mod tests {
             }
         }
     } */
-
+    
+    #[read_binop_impl]
     #[binop(commute, refs_clone)]
     impl Mul<Fish<String>> for Dog {
         type Output = Dog;
