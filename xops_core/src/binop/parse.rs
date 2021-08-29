@@ -10,8 +10,6 @@ use syn::{
     parse_quote, token, Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type,
 };
 
-use derive_builder::*;
-
 // structs -----------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
@@ -40,9 +38,7 @@ pub struct ImplArgs {
 }
 
 /// Type definition for the output of a binary operation: `type Output = C;`
-#[derive(Clone, Builder, Debug)]
-#[builder(derive(Debug))]
-//#[builder(pattern = "immutable")]
+#[derive(Clone, Debug)]
 pub struct ItemOutput {
     pub type_token: Token![type],
     pub ident: Ident,
@@ -53,21 +49,23 @@ pub struct ItemOutput {
 
 impl ItemOutput {
     pub fn with_self() -> Self {
-        Self::_from_ty(parse_quote!(Self))
+        Self::from_ty(parse_quote!(Self))
     }
 
-    pub fn _from_ty(ty: Type) -> Self {
-        ItemOutputBuilder::default()
-            .ty(ty.clone())
-            .build()
-            .unwrap_or_else(|_| panic!("failed to build `ItemOutput` with `{:?}`", ty))
+    pub fn from_ty(ty: Type) -> Self {
+        ItemOutput {
+            type_token: <Token![type]>::default(),
+            ident: parse_quote!(Output),
+            eq_token: <Token![=]>::default(),
+            ty,
+            semi_token: <Token![;]>::default(),
+        }
     }
 }
 
 /// Method implementation for a binary operation:
 /// `fn op(self, rhs: B) -> C { .. }`
-#[derive(Clone, Builder, Debug)]
-#[builder(derive(Debug))]
+#[derive(Clone, Debug)]
 pub struct ItemFn {
     pub attrs: Vec<Attribute>,
     pub fn_token: Token![fn],
@@ -107,143 +105,19 @@ pub struct ItemFn {
 ///
 /// A feature of `syn::ItemImpl` which is lacking here is support for optional
 /// default and visibility keywords; these may be added later.
-#[derive(Clone, Builder, Debug)]
-#[builder(derive(Debug))]
+#[derive(Clone, Debug)]
 pub struct TraitImpl {
     pub attrs: Vec<Attribute>,
     pub impl_token: Token![impl],
     pub generics: Generics,
     pub trait_: Path, // likely not the most general, should be its own thing
-    #[builder(default)]
-    pub lt_token: Token![<],
+    pub lt_token: Option<Token![<]>,
     pub rhs_ty: Type,
     pub for_token: Token![for],
     pub lhs_ty: Type,
     pub brace_token: token::Brace,
     pub item_out: ItemOutput,
     pub item_fn: ItemFn,
-}
-
-// builder helper stuff ----------------------------------------------------------------------------
-
-pub trait Buildable: Clone {
-    type BuilderStruct: From<Self>;
-    fn builder(&self) -> Self::BuilderStruct {
-        self.clone().into()
-    }
-}
-
-/// A helper trait for builders (derived from `derive_builder`) of structs
-/// implementing `Parse`.
-trait ParsedBuild: Clone {
-    /// Original struct from which the builder was derived
-    type BaseStruct: Parse;
-
-    /// Builds the struct (with the usual `build` method), converting the
-    /// result into a `syn::Result`.
-    ///
-    /// This is intended to be used after parsing and, at which point, building
-    /// the struct should be infallible. If this method returns an error, then
-    /// it is most likely that some field was not initialized in the builder
-    /// during parsing
-    ///
-    /// If there were a proper trait for builder, then this could be given a
-    /// default implementation
-    fn parsed_build(&self) -> syn::Result<Self::BaseStruct>;
-}
-
-/// Implements some helpful builder features
-///
-/// at this point, prolly just gonna make my own darn builder deriver
-macro_rules! build_extra {
-    (@impl_from $Base:ty, $Builder:ty: $( $field:ident ),* $(,)?) => {
-        impl From<$Base> for $Builder {
-            fn from(base: $Base) -> Self {
-                let mut bldr = <$Builder>::default();
-                bldr $( .$field(base.$field) )* ;
-
-                // return
-                bldr
-            }
-        }
-        impl From<&$Base> for $Builder {
-            fn from(base: &$Base) -> Self {
-                base.clone().into()
-            }
-        }
-    };
-    (@impl_buildable $Base:ty, $Builder:ty) => {
-        impl Buildable for $Base {
-            type BuilderStruct = $Builder;
-        }
-    };
-    (@err_str $Base:ty) => {
-        format!(
-            "some struct `{0}Builder` failed to build during a call to method `parsed_build` \
-            \n\nnote: Perhaps the implementation of `Parse` for `{0}` failed to initialize \
-            \n      some field(s) in its builder before returning \n\n",
-            stringify!($Base)
-        ).as_str()
-    };
-    (@impl_parsed_build $Base:ty, $Builder:ty) => {
-        impl ParsedBuild for $Builder {
-            type BaseStruct = $Base;
-
-            fn parsed_build(&self) -> syn::Result<Self::BaseStruct> {
-                self.build()
-                    .map(Ok)
-                    .expect(build_extra!(@err_str $Base))
-            }
-        }
-    };
-    (@impl_build_ok $Base:ty, $Builder:ty) => {
-        impl $Builder {
-            pub fn build_option(&self) -> Option<$Base> {
-                Some(self.build().expect("if this fails ur dumb"))
-            }
-        }
-    };
-    ($Base:ty, $Builder:ty : $( $field:ident ),* $(,)?) => {
-        build_extra! { @impl_from $Base, $Builder: $($field),* }
-        build_extra! { @impl_buildable $Base, $Builder }
-        build_extra! { @impl_parsed_build $Base, $Builder }
-        build_extra! {@impl_build_ok $Base, $Builder }
-    };
-}
-
-build_extra! { ItemOutput, ItemOutputBuilder:
-    type_token,
-    ident,
-    eq_token,
-    ty,
-    semi_token,
-}
-
-build_extra! { ItemFn, ItemFnBuilder:
-    attrs,
-    fn_token,
-    ident,
-    paren_token,
-    lhs_arg,
-    comma_token,
-    rhs_arg,
-    arrow_token,
-    out_ty,
-    block,
-}
-
-build_extra! { TraitImpl, TraitImplBuilder:
-    attrs,
-    impl_token,
-    generics,
-    trait_,
-    lt_token,
-    rhs_ty,
-    for_token,
-    lhs_ty,
-    brace_token,
-    item_out,
-    item_fn,
 }
 
 // impl Parse --------------------------------------------------------------------------------------
@@ -290,7 +164,7 @@ impl Parse for ImplArgs {
 }
 
 impl Parse for ItemOutput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    /* fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut bldr = ItemOutputBuilder::default();
 
         bldr.type_token(input.parse()?)
@@ -300,11 +174,20 @@ impl Parse for ItemOutput {
             .semi_token(input.parse()?);
 
         bldr.parsed_build()
+    } */
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(ItemOutput {
+            type_token: input.parse()?,
+            ident: input.parse()?,
+            eq_token: input.parse()?,
+            ty: input.parse()?,
+            semi_token: input.parse()?,
+        })
     }
 }
 
 impl Parse for ItemFn {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    /* fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut bldr = ItemFnBuilder::default();
 
         bldr.attrs(input.call(Attribute::parse_outer)?)
@@ -322,11 +205,26 @@ impl Parse for ItemFn {
             .block(input.parse()?);
 
         bldr.parsed_build()
+    } */
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        Ok(ItemFn {
+            attrs: input.call(Attribute::parse_outer)?,
+            fn_token: input.parse()?,
+            ident: input.parse()?,
+            paren_token: parenthesized!(content in input),
+            lhs_arg: content.parse()?,
+            comma_token: content.parse()?,
+            rhs_arg: content.parse()?,
+            arrow_token: input.parse()?,
+            out_ty: input.parse()?,
+            block: input.parse()?,
+        })
     }
 }
 
 impl Parse for TraitImpl {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    /* fn parse(input: ParseStream) -> syn::Result<Self> {
         let mut bldr = TraitImplBuilder::default();
 
         bldr.attrs(input.call(Attribute::parse_outer)?)
@@ -350,28 +248,6 @@ impl Parse for TraitImpl {
             bldr.rhs_ty = bldr.lhs_ty.clone();
         }
 
-        /* bldr.lt_token(if input.peek(Token![<]) {
-            if input.peek2(Token![>]) {
-                let _: Token![<] = input.parse()?;
-                let _: Token![>] = input.parse()?;
-                None
-            } else {
-                Some(input.parse()?)
-            }
-        } else {
-            None
-        });
-
-        if bldr.lt_token.is_none() {
-            bldr.for_token(input.parse()?).lhs_ty(input.parse()?);
-            let lhs_ty = bldr.lhs_ty.clone().unwrap();
-            bldr.rhs_ty(lhs_ty);
-        } else {
-            bldr.rhs_ty(input.parse()?);
-            let _: Token![>] = input.parse()?;
-            bldr.for_token(input.parse()?).lhs_ty(input.parse()?);
-        } */
-
         generics.where_clause = input.parse()?;
         bldr.generics(generics);
 
@@ -382,6 +258,59 @@ impl Parse for TraitImpl {
         bldr.item_out(content.parse()?).item_fn(content.parse()?);
 
         bldr.parsed_build()
+    } */
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let attrs = input.call(Attribute::parse_outer)?;
+        let impl_token = input.parse()?;
+
+        let mut generics: Generics = input.parse()?;
+
+        let trait_ = input.call(Path::parse_mod_style)?;
+
+        let mut lt_token = None;
+        if input.peek(Token![<]) {
+            if input.peek2(Token![>]) {
+                let _: Token![<] = input.parse()?;
+                let _: Token![>] = input.parse()?;
+            } else {
+                lt_token = Some(input.parse()?);
+            }
+        }
+
+        let rhs_ty;
+        let for_token;
+        let lhs_ty: Type;
+        if lt_token.is_some() {
+            rhs_ty = input.parse()?;
+            let _: Token![>] = input.parse()?;
+            for_token = input.parse()?;
+            lhs_ty = input.parse()?;
+        } else {
+            for_token = input.parse()?;
+            lhs_ty = input.parse()?;
+            rhs_ty = lhs_ty.clone();
+        }
+
+        generics.where_clause = input.parse()?;
+
+        let content;
+        let brace_token = braced!(content in input);
+        let item_out = content.parse()?;
+        let item_fn = content.parse()?;
+
+        Ok(TraitImpl {
+            attrs,
+            impl_token,
+            generics,
+            trait_,
+            lt_token,
+            rhs_ty,
+            for_token,
+            lhs_ty,
+            brace_token,
+            item_out,
+            item_fn,
+        })
     }
 }
 

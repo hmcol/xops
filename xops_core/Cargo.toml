@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 proc-macro2 = "1.0"
 quote = "1.0"
-derive_builder = "0.10.2"
 
 [dependencies.syn]
 version = "1.0"
