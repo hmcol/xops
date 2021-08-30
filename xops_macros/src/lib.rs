@@ -2,7 +2,7 @@ use darling::FromMeta;
 use proc_macro::TokenStream;
 use syn::{AttributeArgs, parse_macro_input};
 
-use xops_core::binop;
+use xops_core::*;
 
 
 /// for deriving extra implementations of the operation
@@ -44,14 +44,14 @@ pub fn binop(args: TokenStream, item: TokenStream) -> TokenStream {
     // print_ts("binop item", &item);
 
     let attr_args = parse_macro_input!(args as AttributeArgs);
-    let binop_impl = parse_macro_input!(item as binop::TraitImpl);
+    let binop_impl = parse_macro_input!(item as BinOpImpl);
 
-    let binop_args = match binop::BinOpArgs::from_list(&attr_args) {
+    let binop_args = match BinOpArgs::from_list(&attr_args) {
         Ok(args) => args,
         Err(e) => { return TokenStream::from(e.write_errors()); }
     };
 
-    let expanded = binop::expand(binop_args, binop_impl);
+    let expanded = binop_impl.expand(binop_args); // binop_expand(binop_args, binop_impl);
 
     TokenStream::from(expanded)
 }
@@ -67,6 +67,6 @@ fn print_ts(header: &str, item: &TokenStream) {
 pub fn read_binop_impl(_args: TokenStream, item: TokenStream) -> TokenStream {
     print_ts("read_binop_impl item", &item);
 
-    let expanded = binop::read_impl(parse_macro_input!(item as binop::TraitImpl));
+    let expanded = binop_read(parse_macro_input!(item as BinOpImpl));
     TokenStream::from(expanded)
 }

@@ -1,10 +1,13 @@
-use proc_macro2::TokenStream;
-use quote::{quote, ToTokens, TokenStreamExt};
-use syn::{Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type, braced, parenthesized, parse::{Parse, ParseStream}, parse_quote, token};
 use darling::FromMeta;
+use syn::{
+    braced, parenthesized,
+    parse::{Parse, ParseStream},
+    token, Attribute, Block, FnArg, Generics, Ident, Path, Receiver, Token, Type,
+};
 
 // structs -----------------------------------------------------------------------------------------
 
+/// Arguments for the macro `#[binop(...)]`
 #[derive(Clone, Copy, Default, FromMeta, Debug)]
 #[darling(default)]
 pub struct BinOpArgs {
@@ -16,7 +19,7 @@ pub struct BinOpArgs {
 
 /// Type definition for the output of a binary operation: `type Output = C;`
 #[derive(Clone, Debug)]
-pub struct ItemOutput {
+pub struct BinOpOutput {
     pub type_token: Token![type],
     pub ident: Ident,
     pub eq_token: Token![=],
@@ -24,26 +27,10 @@ pub struct ItemOutput {
     pub semi_token: Token![;],
 }
 
-impl ItemOutput {
-    pub fn with_self() -> Self {
-        Self::from_ty(parse_quote!(Self))
-    }
-
-    pub fn from_ty(ty: Type) -> Self {
-        ItemOutput {
-            type_token: <Token![type]>::default(),
-            ident: parse_quote!(Output),
-            eq_token: <Token![=]>::default(),
-            ty,
-            semi_token: <Token![;]>::default(),
-        }
-    }
-}
-
 /// Method implementation for a binary operation:
 /// `fn op(self, rhs: B) -> C { .. }`
 #[derive(Clone, Debug)]
-pub struct ItemFn {
+pub struct BinOpFn {
     pub attrs: Vec<Attribute>,
     pub fn_token: Token![fn],
     pub ident: Ident,
@@ -63,10 +50,12 @@ pub struct ItemFn {
 ///
 /// Example:
 /// ```
-/// impl BinOpTrait<B> for A {
+/// impl Op<B> for A {
 ///     type Output = C;
 ///     
-///     fn op(self, rhs: B) -> Self::Output { ... }
+///     fn op(self, rhs: B) -> Self::Output {
+///         ...
+///     }
 /// }
 /// ```
 /// where `BinOpTrait` is any of the binary operations in `std::ops` (e.g.,
@@ -83,7 +72,7 @@ pub struct ItemFn {
 /// A feature of `syn::ItemImpl` which is lacking here is support for optional
 /// default and visibility keywords; these may be added later.
 #[derive(Clone, Debug)]
-pub struct TraitImpl {
+pub struct BinOpImpl {
     pub attrs: Vec<Attribute>,
     pub impl_token: Token![impl],
     pub generics: Generics,
@@ -93,15 +82,15 @@ pub struct TraitImpl {
     pub for_token: Token![for],
     pub lhs_ty: Type,
     pub brace_token: token::Brace,
-    pub item_out: ItemOutput,
-    pub item_fn: ItemFn,
+    pub item_out: BinOpOutput,
+    pub item_fn: BinOpFn,
 }
 
 // impl Parse --------------------------------------------------------------------------------------
 
-impl Parse for ItemOutput {
+impl Parse for BinOpOutput {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(ItemOutput {
+        Ok(BinOpOutput {
             type_token: input.parse()?,
             ident: input.parse()?,
             eq_token: input.parse()?,
@@ -111,10 +100,10 @@ impl Parse for ItemOutput {
     }
 }
 
-impl Parse for ItemFn {
+impl Parse for BinOpFn {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
-        Ok(ItemFn {
+        Ok(BinOpFn {
             attrs: input.call(Attribute::parse_outer)?,
             fn_token: input.parse()?,
             ident: input.parse()?,
@@ -129,7 +118,7 @@ impl Parse for ItemFn {
     }
 }
 
-impl Parse for TraitImpl {
+impl Parse for BinOpImpl {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let attrs = input.call(Attribute::parse_outer)?;
         let impl_token = input.parse()?;
@@ -169,7 +158,7 @@ impl Parse for TraitImpl {
         let item_out = content.parse()?;
         let item_fn = content.parse()?;
 
-        Ok(TraitImpl {
+        Ok(BinOpImpl {
             attrs,
             impl_token,
             generics,
@@ -182,60 +171,5 @@ impl Parse for TraitImpl {
             item_out,
             item_fn,
         })
-    }
-}
-
-// impl ToTokens -----------------------------------------------------------------------------------
-
-impl ToTokens for ItemOutput {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.type_token.to_tokens(tokens);
-        self.ident.to_tokens(tokens);
-        self.eq_token.to_tokens(tokens);
-        self.ty.to_tokens(tokens);
-        self.semi_token.to_tokens(tokens);
-    }
-}
-
-impl ToTokens for ItemFn {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.append_all(&self.attrs);
-        self.fn_token.to_tokens(tokens);
-        self.ident.to_tokens(tokens);
-        self.paren_token.surround(tokens, |tokens| {
-            self.lhs_arg.to_tokens(tokens);
-            self.comma_token.to_tokens(tokens);
-            self.rhs_arg.to_tokens(tokens);
-        });
-        self.arrow_token.to_tokens(tokens);
-        // tokens.append_all(quote!(Self::Output));
-        self.out_ty.to_tokens(tokens);
-        self.block.to_tokens(tokens);
-    }
-}
-
-macro_rules! lr_angled {
-    ($item:expr) => {
-        {
-            let rhs_ty = $item;
-            quote!(<#rhs_ty>)
-        }
-    };
-}
-
-impl ToTokens for TraitImpl {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.append_all(&self.attrs);
-        self.impl_token.to_tokens(tokens);
-        self.generics.to_tokens(tokens);
-        self.trait_.to_tokens(tokens);
-        tokens.append_all(lr_angled!(&self.rhs_ty));
-        self.for_token.to_tokens(tokens);
-        self.lhs_ty.to_tokens(tokens);
-        self.generics.where_clause.to_tokens(tokens);
-        self.brace_token.surround(tokens, |tokens| {
-            self.item_out.to_tokens(tokens);
-            self.item_fn.to_tokens(tokens);
-        });
     }
 }

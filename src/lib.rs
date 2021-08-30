@@ -1,4 +1,4 @@
-pub use xops_macros::*;
+pub use xops_macros::binop;
 
 #[cfg(test)]
 mod tests {
@@ -36,7 +36,7 @@ mod tests {
         }
     }
 
-    /* #[binop(commute, derefs)]
+    // #[binop(commute, derefs)]
     impl<T> Mul<&Dog> for &Fish<T>
     where
         T: Clone + fmt::Debug + std::iter::FromIterator<T>,
@@ -52,9 +52,23 @@ mod tests {
                     .collect(),
             }
         }
-    } */
+    }
+
+    impl<T> Mul<&Dog> for Fish<T>
+    where
+        T: Clone + fmt::Debug + std::iter::FromIterator<T>,
+    {
+        type Output = Fish<T>;
+
+        fn mul(self, rhs: &Dog) -> Fish<T> {
+            Fish {
+                num: self.num * rhs.0,
+                data: self.data,
+            }
+        }
+    }
     
-    #[read_binop_impl]
+    /* // #[read_binop_impl]
     #[binop(commute, refs_clone)]
     impl Mul<Fish<String>> for Dog {
         type Output = Dog;
@@ -62,7 +76,7 @@ mod tests {
         fn mul(self, rhs: Fish<String>) -> Dog {
             Dog(self.0 * rhs.num * (rhs.data.len() as i32))
         }
-    }
+    } */
 
     #[test]
     fn derived_ops_test() {
@@ -71,17 +85,18 @@ mod tests {
             data: "glub".to_string(),
         };
 
+
         dbg!(&fish(7) * &Dog(3));
-        dbg!( fish(7) * &Dog(3));
-        dbg!(&fish(7) *  Dog(3));
-        dbg!( fish(7) *  Dog(3));
+        // dbg!( fish(7) * &Dog(3));
+        // dbg!(&fish(7) *  Dog(3));
+        // dbg!( fish(7) *  Dog(3));
 
-        println!();
+        // println!();
 
-        dbg!(&Dog(3) * &fish(7));
-        dbg!( Dog(3) * &fish(7));
-        dbg!(&Dog(3) *  fish(7));
-        dbg!( Dog(3) *  fish(7));
+        // dbg!(&Dog(3) * &fish(7));
+        // dbg!( Dog(3) * &fish(7));
+        // dbg!(&Dog(3) *  fish(7));
+        // dbg!( Dog(3) *  fish(7));
 
         let x = std::any::type_name::<Fish<String>>();
         dbg!(x);
