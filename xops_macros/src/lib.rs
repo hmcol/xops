@@ -51,7 +51,7 @@ pub fn binop(args: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => { return TokenStream::from(e.write_errors()); }
     };
 
-    let expanded = binop_impl.expand(binop_args); // binop_expand(binop_args, binop_impl);
+    let expanded = binop_impl.expand(binop_args);
 
     TokenStream::from(expanded)
 }

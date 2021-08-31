@@ -45,8 +45,8 @@ fn expand_commute(args: BinOpArgs, impl_: BinOpImpl) -> TokenStream {
         ..args
     };
 
-    let expanded = impl_.expand(new_args); // expand(new_args, impl_.clone());
-    let expanded_comm = impl_.commute().expand(new_args); // expand(new_args, impl_.commute());
+    let expanded = impl_.expand(new_args);
+    let expanded_comm = impl_.commute().expand(new_args);
 
     quote! {
         #expanded
