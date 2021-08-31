@@ -16,4 +16,5 @@ version = "1.0"
 features = ["extra-traits", "full"]
 
 [dependencies.xops_core]
+version = "0.1.0"
 path = "../xops_core"
