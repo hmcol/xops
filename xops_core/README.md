@@ -1,7 +1,6 @@
-# xops
+# xops_core
 
-rust procedural macros for overloading operators
-
+see xops
 
 ## License
 

@@ -2,6 +2,12 @@
 name = "xops_core"
 version = "0.1.0"
 edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/hmcol/xops"
+description = """
+core parsing and codegen for xops
+"""
 
 [dependencies]
 proc-macro2 = "1.0"
