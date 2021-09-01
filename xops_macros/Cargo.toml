@@ -2,6 +2,12 @@
 name = "xops_macros"
 version = "0.1.0"
 edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/hmcol/xops"
+description = """
+procedural macro implementations for xops
+"""
 
 [lib]
 proc-macro = true
