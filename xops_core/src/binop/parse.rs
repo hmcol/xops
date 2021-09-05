@@ -50,16 +50,14 @@ pub struct BinOpFn {
 ///
 /// Example:
 /// ```
-/// impl Op<B> for A {
+/// impl Add<B> for A {
 ///     type Output = C;
 ///     
-///     fn op(self, rhs: B) -> Self::Output {
+///     fn add(self, rhs: B) -> Self::Output {
 ///         ...
 ///     }
 /// }
 /// ```
-/// where `Op` is any of the binary operations in `std::ops` (e.g.,
-/// `Add`, `Mul`, `Rem`, `Shl`, etc.).
 ///
 /// It should work for any typical implementation of the `std::ops` binary
 /// operations (including e.g., generics, default `Rhs = Self`, mutable method

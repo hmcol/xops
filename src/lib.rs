@@ -4,7 +4,7 @@
 //! 
 //! xops = e**X**(tra/tended/cellent) + **OP**erat(or/ion) + **S**
 //! 
-//! This crate provides macros to alleviate repetition when implementing related 'families' of operations. 
+//! This crate provides macros which implement families of operations related to a given operation implementation. 
 //! 
 //! # Usage/Examples
 //! 
