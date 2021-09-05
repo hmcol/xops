@@ -15,5 +15,6 @@ members = [
     "xops_core",
 ]
 
-[dependencies]
-xops_macros = { version = "0.1.0", path = "xops_macros" }
+[dependencies.xops_macros]
+version = "0.1.1"
+path = "xops_macros"
