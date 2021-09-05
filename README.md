@@ -1,6 +1,10 @@
 # xops
+[![Crate](https://img.shields.io/crates/v/xops.svg)](https://crates.io/crates/xops)
+[![API](https://docs.rs/xops/badge.svg)](https://docs.rs/xops)
 
-rust procedural macros for overloading operators
+Rust procedural macros for overloading operators.
+
+
 
 
 ## License

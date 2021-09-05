@@ -1,19 +1,25 @@
 {
     "cSpell.words": [
-        "Buildable",
+        "algeo",
         "algop",
         "binop",
         "bldr",
+        "Buildable",
         "clippy",
         "derefs",
         "glub",
         "idents",
         "impltn",
+        "oplus",
         "paren",
         "structs",
         "xops"
     ],
     "files.exclude": {
         "target": false,
+        "xops_core/LICENSE-APACHE": true,
+        "xops_core/LICENSE-MIT": true,
+        "xops_macros/LICENSE-APACHE": true,
+        "xops_macros/LICENSE-MIT": true,
     },
 }

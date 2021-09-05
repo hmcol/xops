@@ -58,7 +58,7 @@ pub struct BinOpFn {
 ///     }
 /// }
 /// ```
-/// where `BinOpTrait` is any of the binary operations in `std::ops` (e.g.,
+/// where `Op` is any of the binary operations in `std::ops` (e.g.,
 /// `Add`, `Mul`, `Rem`, `Shl`, etc.).
 ///
 /// It should work for any typical implementation of the `std::ops` binary
